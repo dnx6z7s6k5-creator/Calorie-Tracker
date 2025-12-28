@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Calorie Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --text: #000;
+  --accent: #4CAF50;
+}
+
+.dark {
+  --bg: #121212;
+  --card: #1e1e1e;
+  --text: #ffffff;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 15px;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  background: var(--card);
+  padding: 20px;
+  border-radius: 10px;
+}
+
+h1 {
+  text-align: center;
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+}
+
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.food-item {
+  display: flex;
+  justify-content: space-between;
+  background: #ddd;
+  margin: 5px 0;
+  padding: 8px;
+  border-radius: 5px;
+}
+
+.dark .food-item {
+  background: #333;
+}
+
+.total {
+  text-align: center;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.toggle {
+  text-align: center;
+  margin-bottom: 10px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1>Calorie Tracker</h1>
+
+  <div class="toggle">
+    <button onclick="toggleDark()">🌙 Toggle Dark Mode</button>
+  </div>
+
+  <input id="goal" type="number" placeholder="Daily calorie goal (optional)">
+  <button onclick="saveGoal()">Save Goal</button>
+
+  <hr>
+
+  <input id="food" placeholder="Food name">
+  <input id="cal" type="number" placeholder="Calories">
+  <input id="protein" type="number" placeholder="Protein (g)">
+  <input id="carbs" type="number" placeholder="Carbs (g)">
+  <input id="fat" type="number" placeholder="Fat (g)">
+  <button onclick="addFood()">Add Food</button>
+
+  <div id="list"></div>
+
+  <div class="total">
+    Calories: <span id="totalCal">0</span><br>
+    Protein: <span id="totalProtein">0</span> g |
+    Carbs: <span id="totalCarbs">0</span> g |
+    Fat: <span id="totalFat">0</span> g
+  </div>
+
+  <canvas id="chart" style="margin-top:20px;"></canvas>
+</div>
+
+<script>
+let foods = JSON.parse(localStorage.getItem("foods")) || [];
+let goal = localStorage.getItem("goal") || "";
+let dateSaved = localStorage.getItem("date");
+
+const today = new Date().toDateString();
+if (dateSaved !== today) {
+  foods = [];
+  localStorage.setItem("foods", JSON.stringify(foods));
+  localStorage.setItem("date", today);
+}
+
+document.getElementById("goal").value = goal;
+
+function saveGoal() {
+  goal = document.getElementById("goal").value;
+  localStorage.setItem("goal", goal);
+}
+
+function addFood() {
+  const item = {
+    food: food.value,
+    cal: +cal.value,
+    protein: +protein.value,
+    carbs: +carbs.value,
+    fat: +fat.value
+  };
+  if (!item.food || !item.cal) return;
+
+  foods.push(item);
+  localStorage.setItem("foods", JSON.stringify(foods));
+  clearInputs();
+  render();
+}
+
+function removeFood(i) {
+  foods.splice(i, 1);
+  localStorage.setItem("foods", JSON.stringify(foods));
+  render();
+}
+
+function clearInputs() {
+  food.value = cal.value = protein.value = carbs.value = fat.value = "";
+}
+
+function render() {
+  list.innerHTML = "";
+  let tCal = 0, tP = 0, tC = 0, tF = 0;
+
+  foods.forEach((f, i) => {
+    tCal += f.cal;
+    tP += f.protein;
+    tC += f.carbs;
+    tF += f.fat;
+
+    list.innerHTML += `
+      <div class="food-item">
+        ${f.food} (${f.cal} cal)
+        <button onclick="removeFood(${i})">✖</button>
+      </div>
+    `;
+  });
+
+  totalCal.innerText = tCal;
+  totalProtein.innerText = tP;
+  totalCarbs.innerText = tC;
+  totalFat.innerText = tF;
+
+  drawChart(tP, tC, tF);
+}
+
+let chart;
+function drawChart(p, c, f) {
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById("chart"), {
+    type: "doughnut",
+    data: {
+      labels: ["Protein", "Carbs", "Fat"],
+      datasets: [{
+        data: [p, c, f],
+        backgroundColor: ["#4CAF50", "#2196F3", "#FF9800"]
+      }]
+    }
+  });
+}
+
+function toggleDark() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("dark", document.body.classList.contains("dark"));
+}
+
+if (localStorage.getItem("dark") === "true") {
+  document.body.classList.add("dark");
+}
+
+render();
+</script>
+</body>
+</html>
